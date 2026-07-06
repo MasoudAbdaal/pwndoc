@@ -577,6 +577,23 @@ module.exports = function () {
         expect(ooxml).toEqual(expected)
       })
 
+      it('Persian mixed with English and technical values gets Word bidi properties', () => {
+        var samples = [
+          'آسیب‌پذیری SQL Injection در مسیر /api/login شناسایی شد.',
+          'کاربر admin به بخش Settings دسترسی دارد.',
+          'برای راه‌اندازی مجدد سرویس از دستور systemctl restart nginx استفاده شود.',
+          'نسخه API برابر با v2 است و درخواست به endpoint /api/v2/users ارسال می‌شود.',
+          'آسیب‌پذیری CVE-2025-1234 در Apache HTTP Server شناسایی شد.'
+        ]
+
+        samples.forEach(sample => {
+          var ooxml = html2ooxml(`<p>${sample}</p>`)
+          expect(ooxml).toContain('<w:bidi/>')
+          expect(ooxml).toContain('<w:rtl/>')
+          expect(ooxml).toContain(sample.match(/[A-Za-z0-9/.-]+(?: [A-Za-z0-9/.-]+)*/)[0])
+        })
+      })
+
     })
 
     describe('Syntax highlight tests', () => {
@@ -771,6 +788,7 @@ module.exports = function () {
         var ooxml = html2ooxml(html)
         expect(ooxml).toEqual(expected)
       })
+
     })
 
     describe('report-filters tests', () => {
@@ -856,6 +874,11 @@ module.exports = function () {
         expect(filtered).toHaveLength(1)
 
         expect(defaultFilters.convertHTML("<p>Hello</p>")).toContain("Hello")
+        var rtlXml = defaultFilters.convertHTML("<p>آسیب‌پذیری SQL Injection در مسیر /api/login شناسایی شد.</p>")
+        expect(rtlXml).toContain("<w:bidi/>")
+        expect(rtlXml).toContain("<w:rtl/>")
+        expect(rtlXml).toContain("SQL Injection")
+        expect(rtlXml).toContain("/api/login")
         expect(defaultFilters.count(
           [{cvss: {environmentalSeverity: "High"}}, {cvss: {environmentalSeverity: "Low"}}],
           "High",

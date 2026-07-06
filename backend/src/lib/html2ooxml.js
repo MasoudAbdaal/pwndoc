@@ -5,6 +5,9 @@ var domutils = require("domutils")
 const render = require('dom-serializer').default
 const hljs = require('highlight.js');
 
+const RTL_REGEX = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/
+const LTR_REGEX = /[A-Za-z0-9]/
+
 function html2ooxml(html, style = '') {
     if (html === '')
         return html
@@ -16,6 +19,9 @@ function html2ooxml(html, style = '') {
     var cParagraph = null
     var cRunProperties = {}
     var cParagraphProperties = {}
+    var cParagraphText = ''
+    var cParagraphDirection = null
+    var paragraphDirections = []
     var list_state = []
     var inCodeBlock = false
     var parser = new htmlparser.Parser(
@@ -23,30 +29,38 @@ function html2ooxml(html, style = '') {
         onopentag(tag, attribs) {
             if (tag === "h1") {
                 cParagraph = new docx.Paragraph({heading: 'Heading1'})
+                cParagraphDirection = getDirection(attribs)
             }
             else if (tag === "h2") {
                 cParagraph = new docx.Paragraph({heading: 'Heading2'})
+                cParagraphDirection = getDirection(attribs)
             }
             else if (tag === "h3") {
                 cParagraph = new docx.Paragraph({heading: 'Heading3'})
+                cParagraphDirection = getDirection(attribs)
             }
             else if (tag === "h4") {
                 cParagraph = new docx.Paragraph({heading: 'Heading4'})
+                cParagraphDirection = getDirection(attribs)
             }
             else if (tag === "h5") {
                 cParagraph = new docx.Paragraph({heading: 'Heading5'})
+                cParagraphDirection = getDirection(attribs)
             }
             else if (tag === "h6") {
                 cParagraph = new docx.Paragraph({heading: 'Heading6'})
+                cParagraphDirection = getDirection(attribs)
             }
             else if (tag === "div" || tag === "p") {
                 if (style && typeof style === 'string')
                     cParagraphProperties.style = style
                 cParagraph = new docx.Paragraph(cParagraphProperties)
+                cParagraphDirection = getDirection(attribs)
             }
             else if (tag === "pre") {
                 inCodeBlock = true
                 cParagraph = new docx.Paragraph({style: "Code"})
+                cParagraphDirection = getDirection(attribs)
             }
             else if (tag === "b" || tag === "strong") {
                 cRunProperties.bold = true
@@ -71,7 +85,10 @@ function html2ooxml(html, style = '') {
             else if (tag === "br") {
                 if (inCodeBlock) {
                     paragraphs.push(cParagraph)
+                    paragraphDirections.push(resolveDirection(cParagraphDirection, cParagraphText, 'pre'))
                     cParagraph = new docx.Paragraph({style: "Code"})
+                    cParagraphText = ''
+                    cParagraphDirection = null
                 }
                 else
                     cParagraph.addChildElement(new docx.Run({break: 1}))
@@ -126,16 +143,22 @@ function html2ooxml(html, style = '') {
 
         ontext(text) {
             if (text && cParagraph) {
-                cRunProperties.text = text
-                cParagraph.addChildElement(new docx.TextRun(cRunProperties))
+                cParagraphText += text
+                splitTextByDirection(text).forEach(segment => {
+                    cRunProperties.text = segment
+                    cParagraph.addChildElement(new docx.TextRun(cRunProperties))
+                })
             }
         },
 
         onclosetag(tag) {
             if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'div', 'p', 'pre', 'legend'].includes(tag)) {
                 paragraphs.push(cParagraph)
+                paragraphDirections.push(resolveDirection(cParagraphDirection, cParagraphText, tag))
                 cParagraph = null
                 cParagraphProperties = {}
+                cParagraphText = ''
+                cParagraphDirection = null
                 if (tag === 'pre')
                     inCodeBlock = false
             }
@@ -194,11 +217,110 @@ function html2ooxml(html, style = '') {
     var filteredXml = prepXml["w:body"].filter(e => {return e && Object.keys(e)[0] === "w:p"})
     var dataXml = xml(filteredXml)
     dataXml = dataXml.replace(/w:numId w:val="{2-0}"/g, 'w:numId w:val="2"') // Replace numbering to have correct value
+    dataXml = applyBidiProperties(dataXml, paragraphDirections)
 
     return dataXml
         
 }
 module.exports = html2ooxml
+
+function getDirection(attribs = {}) {
+    if (attribs.dir === 'rtl' || attribs.dir === 'ltr')
+        return attribs.dir
+
+    var style = attribs.style || ''
+    if (/direction\s*:\s*rtl/i.test(style))
+        return 'rtl'
+    if (/direction\s*:\s*ltr/i.test(style))
+        return 'ltr'
+
+    return null
+}
+
+function getTextDirection(text) {
+    for (const char of text || '') {
+        if (RTL_REGEX.test(char)) return 'rtl'
+        if (LTR_REGEX.test(char)) return 'ltr'
+    }
+    return null
+}
+
+function resolveDirection(explicitDirection, text, tag) {
+    if (tag === 'pre')
+        return 'ltr'
+    return explicitDirection || getTextDirection(text) || 'ltr'
+}
+
+function getCharDirection(char) {
+    if (RTL_REGEX.test(char)) return 'rtl'
+    if (LTR_REGEX.test(char)) return 'ltr'
+    return 'neutral'
+}
+
+function splitTextByDirection(text) {
+    var result = []
+    var current = ''
+    var currentDirection = null
+
+    for (const char of text) {
+        var charDirection = getCharDirection(char)
+
+        if (charDirection !== 'neutral') {
+            if (currentDirection && currentDirection !== charDirection) {
+                result.push(current)
+                current = ''
+            }
+            currentDirection = charDirection
+        }
+
+        current += char
+    }
+
+    if (current)
+        result.push(current)
+
+    return result
+}
+
+function applyBidiProperties(dataXml, paragraphDirections) {
+    var paragraphIndex = 0
+    return dataXml.replace(/<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g, paragraph => {
+        var direction = paragraphDirections[paragraphIndex++] || 'ltr'
+        if (direction !== 'rtl')
+            return paragraph
+
+        var result = addParagraphBidi(paragraph)
+        return result.replace(/<w:r(?:\s[^>]*)?>[\s\S]*?<\/w:r>/g, run => {
+            if (!RTL_REGEX.test(stripXml(run)))
+                return run
+            return addRunRtl(run)
+        })
+    })
+}
+
+function addParagraphBidi(paragraph) {
+    if (paragraph.includes('<w:bidi'))
+        return paragraph
+
+    if (paragraph.includes('<w:pPr>'))
+        return paragraph.replace('<w:pPr>', '<w:pPr><w:bidi/>')
+
+    return paragraph.replace(/<w:p([^>]*)>/, '<w:p$1><w:pPr><w:bidi/></w:pPr>')
+}
+
+function addRunRtl(run) {
+    if (run.includes('<w:rtl'))
+        return run
+
+    if (run.includes('<w:rPr>'))
+        return run.replace('<w:rPr>', '<w:rPr><w:rtl/>')
+
+    return run.replace(/<w:r([^>]*)>/, '<w:r$1><w:rPr><w:rtl/></w:rPr>')
+}
+
+function stripXml(input) {
+    return input.replace(/<[^>]+>/g, '')
+}
 
 function getHighlightColor(hexColor) {
 // <xsd:simpleType name="ST_HighlightColor">

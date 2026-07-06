@@ -309,6 +309,7 @@ import Caption from './editor-caption'
 import Comment from './editor-comment'
 import CustomHighlight from './editor-highlight'
 import TrailingNode from './editor-trailing-node'
+import TextDirection from './editor-text-direction'
 import CodeBlockComponent from './editor-code-block'
 import CommentExtension from './editor-comment-extension'
 
@@ -404,6 +405,7 @@ export default {
                         node: 'paragraph',
                         notAfter: ['paragraph', 'heading', 'bullet_list', 'ordered_list', 'code_block']
                     }),
+                    TextDirection,
                     CodeBlockLowlight.extend({
                         addNodeView() {
                             return VueNodeViewRenderer(CodeBlockComponent)
@@ -776,6 +778,19 @@ export default {
     .ProseMirror {
         min-height: 200px;
         cursor: auto;
+        unicode-bidi: plaintext;
+
+        [dir="rtl"] {
+            direction: rtl;
+            text-align: right;
+            unicode-bidi: plaintext;
+        }
+
+        [dir="ltr"] {
+            direction: ltr;
+            text-align: left;
+            unicode-bidi: plaintext;
+        }
 
         .lt {
             text-decoration-line: underline;
