@@ -188,7 +188,7 @@ export default {
 
       if ((display.includes(field.display) && (field.displaySub === '' || field.displaySub === displaySub))) { // wanted field
         let fieldText = ''
-        if (['select-multiple', 'checkbox'].includes(field.fieldType))
+        if (['select-multiple', 'checkbox', 'http-endpoints'].includes(field.fieldType))
           fieldText = []
         if (locale && Array.isArray(field.text)) { // set default text for locale if it exists
           let textLocale = field.text.find(e => e.locale === locale)

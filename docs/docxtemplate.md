@@ -208,6 +208,19 @@ You can replace the prefix by using the filter ```changeID```
 Additional fields will also be added to the findings Array. The key will be lowercase + strip sapces of the label.
 Eg. if Custom Field label is `Aggravating Factors` it will be added to the array as `findings[i].aggravatingfactors`.
 
+The `HTTP Affected Points` component is exposed as an array of objects. For a finding Custom Field labeled `Affected Endpoints`, use:
+
+```
+{#findings}
+{title}
+{#affectedendpoints}
+Method: {method}
+URL: {url}
+Parameter: {parameter}
+{/affectedendpoints}
+{/findings}
+```
+
 > Use in template document
 >```
 List of Findings{#findings}

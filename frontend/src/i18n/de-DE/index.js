@@ -477,6 +477,7 @@ export default {
     checkbox: 'Checkbox',
     editor: 'Editor',
     input: 'Eingabe',
+    httpAffectedPoints: 'HTTP Affected Points',
     radio: 'Radio',
     select: 'Auswahl',
     selectMultiple: 'Mehrfachauswahl',

@@ -178,6 +178,16 @@
                     </q-badge>
                 </q-select>
 
+                <http-endpoints-field
+                :ref="`field-${idx}-${idx2}`"
+                v-if="field.customField.fieldType === 'http-endpoints'"
+                v-model="field.text"
+                :label="field.customField.label"
+                :hint="field.customField.description"
+                :required="field.customField.required"
+                :readonly="readonly"
+                />
+
                 <q-field
                 :id="`field-${field.customField.label}`"
                 :ref="`field-${idx}-${idx2}`"
@@ -252,6 +262,7 @@
 
 <script>
 import BasicEditor from 'components/editor/Editor.vue';
+import HttpEndpointsField from 'components/http-endpoints-field.vue';
 
 export default {
     name: 'custom-fields',
@@ -310,7 +321,8 @@ export default {
     },
 
     components: {
-        BasicEditor
+        BasicEditor,
+        HttpEndpointsField
     },
 
     computed: {

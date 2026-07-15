@@ -3,8 +3,27 @@ module.exports = function () {
   var utils = require("../src/lib/utils")
   var reportFilters = require("../src/lib/report-filters")
   var customGenerator = require("../src/lib/custom-generator")
+  var customFieldValidator = require("../src/lib/custom-field-validator")
 
   describe('Lib functions Suite Tests', () => {
+
+    describe('HTTP affected points validation tests', () => {
+      it('accepts valid endpoint rows', () => {
+        expect(customFieldValidator.validateHttpEndpoints([
+          {method: 'GET', url: '/api/users', parameter: 'id'},
+          {method: 'POST', url: 'https://example.com/api/login', parameter: 'username'}
+        ])).toBe(true)
+      })
+
+      it('rejects invalid methods and non-string values', () => {
+        expect(customFieldValidator.validateHttpEndpoints([
+          {method: 'TRACE', url: '/api/users', parameter: 'id'}
+        ])).toBe(false)
+        expect(customFieldValidator.validateHttpEndpoints([
+          {method: 'GET', url: 42, parameter: 'id'}
+        ])).toBe(false)
+      })
+    })
 
     describe('Name format validation tests', () => {
       it('Valid Filename', () => {
@@ -969,6 +988,10 @@ module.exports = function () {
               cvssv4: 'AV:N/AC:H/AT:P/PR:L/UI:A/VC:H/VI:L/VA:N/SC:L/SI:N/SA:H/S:P/AU:Y/R:A/V:C/RE:H/U:RED',
               customFields: [
                 { customField: { fieldType: 'text', label: 'Finding Notes' }, text: '<p>Field text</p>' },
+                {
+                  customField: { fieldType: 'http-endpoints', label: 'Affected Endpoints' },
+                  text: [{ method: 'GET', url: '/api/users', parameter: 'id' }]
+                },
                 { fieldType: 'input', label: 'Legacy Label', text: 'legacy' }
               ]
             },
@@ -1113,6 +1136,9 @@ module.exports = function () {
         expect(rendered.findings[0].cvss.environmentalMetricScore).toBe('4.0')
         expect(rendered.findings[0].cvss4.baseScore).toBe('9.0')
         expect(rendered.findings[0].cvssObj.AV).toBe('Network')
+        expect(rendered.findings[0].affectedendpoints).toEqual([
+          { method: 'GET', url: '/api/users', parameter: 'id' }
+        ])
         expect(rendered.findings[1].cvssObj.AV).toBe('Physical')
         var descriptionImages = rendered.findings[0].description.flatMap(block => block.images || [])
         expect(descriptionImages[0].image).toContain('data:image/png;base64')

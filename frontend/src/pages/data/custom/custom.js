@@ -2,6 +2,7 @@ import { Dialog, Notify } from 'quasar';
 import draggable from 'vuedraggable'
 import BasicEditor from 'components/editor/Editor.vue';
 import CustomFields from 'components/custom-fields'
+import HttpEndpointsField from 'components/http-endpoints-field.vue'
 import DraftRecoveryStatus from 'components/draft-recovery-status.vue'
 
 import DataService from '@/services/data'
@@ -85,6 +86,7 @@ export default {
                 {label: $t('date'), value: 'date', icon: 'event'},
                 {label: $t('editor'), value: 'text', icon: 'mdi-format-pilcrow'},
                 {label: $t('input'), value: 'input', icon: 'title'},
+                {label: $t('httpAffectedPoints'), value: 'http-endpoints', icon: 'http'},
                 {label: $t('radio'), value: 'radio', icon: 'radio_button_checked'},
                 {label: $t('select'), value: 'select', icon: 'far fa-caret-square-down'},
                 {label: $t('selectMultiple'), value: 'select-multiple', icon: 'filter_none'},
@@ -108,6 +110,7 @@ export default {
     components: {
         BasicEditor,
         CustomFields,
+        HttpEndpointsField,
         DraftRecoveryStatus,
         draggable
     },
@@ -702,7 +705,7 @@ export default {
                 if (text[i].locale === this.cfLocale)
                     return i
             }
-            if (['select-multiple', 'checkbox'].includes(this.customFields[fieldIdx].fieldType))
+            if (['select-multiple', 'checkbox', 'http-endpoints'].includes(this.customFields[fieldIdx].fieldType))
                 text.push({locale: this.cfLocale, value: []})
             else
                 text.push({locale: this.cfLocale, value: ""})

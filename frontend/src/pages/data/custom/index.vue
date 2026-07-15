@@ -1159,6 +1159,14 @@
                                             </template>
                                         </q-input>
 
+                                        <http-endpoints-field
+                                        v-if="field.fieldType === 'http-endpoints'"
+                                        v-model="field.text[getFieldLocaleText(index)].value"
+                                        :label="field.label"
+                                        :hint="field.description"
+                                        :required="field.required"
+                                        />
+
                                         <q-select
                                         v-if="field.fieldType === 'select'"
                                         :label="field.label"

@@ -7,6 +7,7 @@ module.exports = function(app, io) {
     var _ = require('lodash');
     var utils = require('../lib/utils');
     var Settings = require('mongoose').model('Settings');
+    var customFieldValidator = require('../lib/custom-field-validator');
 
     /* ### AUDITS LIST ### */
 
@@ -233,7 +234,13 @@ module.exports = function(app, io) {
             update.scope = req.body.scope.map(item => {return {name: item}});
         }
         if (req.body.template) update.template = req.body.template;
-        if (req.body.customFields) update.customFields = req.body.customFields;
+        if (req.body.customFields) {
+            if (!customFieldValidator.validate(req.body.customFields)) {
+                Response.BadParameters(res, 'Invalid HTTP affected points custom field')
+                return
+            }
+            update.customFields = req.body.customFields;
+        }
         if (settings.reviews.enabled && settings.reviews.private.removeApprovalsUponUpdate) update.approvals = [];
 
         Audit.updateGeneral(acl.isAllowed(req.decodedToken.roles, 'audits:update-all'), req.params.auditId, req.decodedToken.id, update)
@@ -302,7 +309,13 @@ module.exports = function(app, io) {
         if (req.body.scope) finding.scope = req.body.scope;
         if (req.body.status !== undefined) finding.status = req.body.status;
         if (req.body.category) finding.category = req.body.category
-        if (req.body.customFields) finding.customFields = req.body.customFields
+        if (req.body.customFields) {
+            if (!customFieldValidator.validate(req.body.customFields)) {
+                Response.BadParameters(res, 'Invalid HTTP affected points custom field')
+                return
+            }
+            finding.customFields = req.body.customFields
+        }
 
         if (settings.reviews.enabled && settings.reviews.private.removeApprovalsUponUpdate) {
             Audit.updateGeneral(acl.isAllowed(req.decodedToken.roles, 'audits:update-all'), req.params.auditId, req.decodedToken.id, { approvals: [] });
@@ -348,7 +361,13 @@ module.exports = function(app, io) {
         if (!_.isNil(req.body.scope)) finding.scope = req.body.scope;
         if (req.body.status !== undefined) finding.status = req.body.status;
         if (req.body.category) finding.category = req.body.category
-        if (req.body.customFields) finding.customFields = req.body.customFields
+        if (req.body.customFields) {
+            if (!customFieldValidator.validate(req.body.customFields)) {
+                Response.BadParameters(res, 'Invalid HTTP affected points custom field')
+                return
+            }
+            finding.customFields = req.body.customFields
+        }
         if (req.body.retestDescription) finding.retestDescription = req.body.retestDescription
         if (req.body.retestStatus) finding.retestStatus = req.body.retestStatus
 
@@ -398,6 +417,10 @@ module.exports = function(app, io) {
         if (typeof req.body.customFields === 'undefined') {
             Response.BadParameters(res, 'Missing some required parameters: customFields');
             return;
+        }
+        if (!customFieldValidator.validate(req.body.customFields)) {
+            Response.BadParameters(res, 'Invalid HTTP affected points custom field')
+            return
         }
         var section = {};
         // Mandatory parameters

@@ -370,6 +370,14 @@ describe('Utils Service', () => {
       expect(result[0].text).toEqual([])
     })
 
+    it('should initialize HTTP endpoints with an array', () => {
+      const fields = [
+        { _id: 'http', display: 'finding', displaySub: '', fieldType: 'http-endpoints', text: [] }
+      ]
+      const result = Utils.filterCustomFields('finding', '', fields, [])
+      expect(result[0].text).toEqual([])
+    })
+
     it('should map objectFields text to customFields', () => {
       const objectFields = [
         { customField: '1', text: 'Existing text' }

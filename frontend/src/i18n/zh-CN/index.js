@@ -480,6 +480,7 @@ export default {
     checkbox: '复选框',
     editor: '编辑器',
     input: '输入框',
+    httpAffectedPoints: 'HTTP Affected Points',
     radio: '单选框',
     select: '下拉列表（单选）',
     selectMultiple: '下拉列表（多选）',

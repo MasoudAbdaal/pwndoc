@@ -146,6 +146,7 @@ A Custom Field is defined by:
     - Date
     - Editor
     - Input
+    - HTTP Affected Points (repeatable HTTP method, URL, and parameter rows)
     - Radio
     - Select
     - Select Multiple
